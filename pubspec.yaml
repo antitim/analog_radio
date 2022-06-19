@@ -11,5 +11,3 @@ dev_dependencies:
   build_runner: ^2.1.11
   build_test: ^2.1.5
   build_web_compilers: ^3.2.3
-platforms:
-  web:

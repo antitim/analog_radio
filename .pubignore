@@ -1,7 +1,0 @@
-.dart_tool
-.packages
-build
-.DS_Store
-.firebase
-pubspec.lock
-doc/api
