@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+    <title>Radio Noise</title>
+    <script defer src="main.dart.js"></script>
+  </head>
+  <body>
+    <h1>Radio Noise</h1>
+    <label>Volume</label>
+    <input type="range" min="0" max="1" step="0.01" class="volume" value="0"/>
+    <label>Frequency <span class="frequency-value"></span> kHz</label>
+    <input type="range" step="1" class="freq" />
+    <h2>Stations</h2>
+    <nav class="stations-frequency"></nav>
+    <textarea cols="30" rows="10" class="stations"></textarea>
+  </body>
+</html>
