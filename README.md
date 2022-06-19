@@ -3,7 +3,7 @@
 ## Install
 
 ```sh
-
+dart pub add analog_radio
 ```
 
 ## Developing
@@ -14,6 +14,5 @@ dart pub get
 ```
 
 ```sh
-cd ./example
 webdev serve
 ```
