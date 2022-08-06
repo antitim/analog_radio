@@ -5,12 +5,12 @@ class RadioNode {
   ScriptProcessorNode _node;
   final Random _random = Random(10);
   double signalStrength = 0;
-  int _waveI = 0;
+  // int _waveI = 0;
   int _sawWaveI = 0;
   int _sawWave2I = 0;
   int _freq = 600;
   int _freq2 = 62;
-  int _period = 600000;
+  // int _period = 600000;
 
   RadioNode(AudioContext ctx) : _node = ctx.createScriptProcessor(1024, 2, 2) {
     _node.onAudioProcess.listen(onAudioProcessHandler);
@@ -66,7 +66,7 @@ class RadioNode {
 
     _sawWaveI++;
     _sawWave2I++;
-    _waveI++;
+    // _waveI++;
     return signal;
   }
 

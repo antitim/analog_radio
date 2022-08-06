@@ -1,8 +1,8 @@
 name: analog_radio
-description: Analog radio emulator
+description: Utility for adding analog radio noise to online radio. Uses the WebAudio Api.
 homepage: https://github.com/antitim/analog_radio
 repository: https://github.com/antitim/analog_radio
-version: 1.0.0
+version: 1.0.1
 environment:
   sdk: ">=2.15.0 <3.0.0"
 dependencies:
