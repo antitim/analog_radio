@@ -5,12 +5,15 @@ class RadioNode {
   ScriptProcessorNode _node;
   final Random _random = Random(10);
   double signalStrength = 0;
-  // int _waveI = 0;
   int _sawWaveI = 0;
   int _sawWave2I = 0;
   int _freq = 600;
   int _freq2 = 62;
-  // int _period = 600000;
+  double _sawVolume1 = 0.25;
+  double _sawVolume2 = 0.1;
+
+  int _waveI = 0;
+  int _period = 600000;
 
   RadioNode(AudioContext ctx) : _node = ctx.createScriptProcessor(1024, 2, 2) {
     _node.onAudioProcess.listen(onAudioProcessHandler);
@@ -46,27 +49,35 @@ class RadioNode {
   double _addSawWave(double signal) {
     if (signalStrength == 1) return signal;
 
-    // if (_waveI > _period) {
-    //   _freq = 200 + (_random.nextDouble() * 200).toInt();
-    //   _period = 200000 + (_random.nextDouble() * 900000).toInt();
-    //   _waveI = 0;
-    // }
-    // if (_waveI > 3000) {
-    //   _freq = _freq + ((_random.nextDouble() - 0.5) * 10).toInt();
-    //   if (_freq < 500) _freq = 500;
-    //   if (_freq > 700) _freq = 700;
-    //   _waveI = 0;
-    // }
+    if (_waveI > _period) {
+      _freq = 200 + (_random.nextDouble() * 200).toInt();
+      _period = 200000 + (_random.nextDouble() * 900000).toInt();
+      _waveI = 0;
+    }
 
-    signal = signal + (_sawWaveI / _freq) * (1 - signalStrength) / 4;
+    if (_waveI > 3000) {
+      _freq = _freq + ((_random.nextDouble() - 0.5) * 10).toInt();
+      if (_freq < 500) _freq = 500;
+      if (_freq > 700) _freq = 700;
+      _waveI = 0;
+    }
+
+    if (_waveI < _period) {
+      _sawVolume1 = _sawVolume1 + (_random.nextDouble() - 0.5) / 1000;
+    } else {
+      _waveI = 0;
+    }
+
+    signal = signal + (_sawWaveI / _freq) * (1 - signalStrength) * _sawVolume1;
     if (_sawWaveI > _freq) _sawWaveI = 0;
 
-    signal = signal + (_sawWave2I / _freq2) * (1 - signalStrength) / 10;
+    signal =
+        signal + (_sawWave2I / _freq2) * (1 - signalStrength) * _sawVolume2;
     if (_sawWave2I > _freq2) _sawWave2I = 0;
 
     _sawWaveI++;
     _sawWave2I++;
-    // _waveI++;
+
     return signal;
   }
 

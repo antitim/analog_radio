@@ -2,12 +2,12 @@ name: analog_radio
 description: Utility for adding analog radio noise to online radio. Uses the WebAudio Api.
 homepage: https://github.com/antitim/analog_radio
 repository: https://github.com/antitim/analog_radio
-version: 1.0.1
+version: 1.1.0
 environment:
-  sdk: ">=2.15.0 <3.0.0"
+  sdk: ">=2.18.0 <3.0.0"
 dependencies:
   js: ^0.6.4
 dev_dependencies:
-  build_runner: ^2.1.11
+  build_runner: ^2.3.3
   build_test: ^2.1.5
-  build_web_compilers: ^3.2.3
+  build_web_compilers: ^3.2.7
