@@ -81,6 +81,7 @@ class AudioProcessor implements AnalogRadio {
     _stopWatching();
     await _audioContext.suspend();
     _dispatchCurrentState();
+    _audioPlayer.src = '';
   }
 
   @override
@@ -169,4 +170,8 @@ class AudioProcessor implements AnalogRadio {
   String get url => _audioPlayer.src;
   @override
   bool get running => _audioContext.state == 'running';
+  @override
+  void dispose() {
+    _audioContext.close();
+  }
 }

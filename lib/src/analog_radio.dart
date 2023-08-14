@@ -40,4 +40,7 @@ abstract class AnalogRadio {
 
   /// The radio is on
   bool get running;
+
+  /// Dispose
+  void dispose();
 }

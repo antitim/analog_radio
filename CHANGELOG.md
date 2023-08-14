@@ -1,3 +1,10 @@
+# 1.2.0
+
+- Update to Dart 3.
+- Make audio context dispose.
+- Added more description.
+- Added link to example.
+
 # 1.1.0
 
 - Update sound of noise. Added some random sawWaves.
