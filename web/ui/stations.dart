@@ -6,7 +6,7 @@ import 'tuned_station.dart';
 class Stations {
   final frequencyMin = 520;
   final frequencyMax = 1710;
-  final int sideWidth = 7;
+  final int sideWidth = 10;
   List<Station> stations = [];
 
   int get frequencyRangeLength => frequencyMax - frequencyMin;

@@ -5,6 +5,8 @@ class RadioNode {
   ScriptProcessorNode _node;
   final Random _random = Random(10);
   double signalStrength = 0;
+
+  // For saw wave
   int _sawWaveI = 0;
   int _sawWave2I = 0;
   int _freq = 600;
@@ -12,67 +14,62 @@ class RadioNode {
   double _sawVolume1 = 0.25;
   double _sawVolume2 = 0.1;
 
-  int _waveI = 0;
-  int _period = 600000;
+  // For pink noise
+  double _b0 = 0;
+  double _b1 = 0;
+  double _b2 = 0;
+  double _b3 = 0;
+  double _b4 = 0;
+  double _b5 = 0;
+  double _b6 = 0;
 
-  RadioNode(AudioContext ctx) : _node = ctx.createScriptProcessor(1024, 2, 2) {
+  RadioNode(AudioContext ctx) : _node = ctx.createScriptProcessor(4096, 2, 2) {
     _node.onAudioProcess.listen(onAudioProcessHandler);
   }
 
   AudioNode get node => _node;
 
-  double _getNoise() {
-    double signalStrengthRelative = pow(signalStrength, 1 / 2.5).toDouble();
-
-    var rnd = _random.nextDouble() * 2 - 1;
-    var noise = rnd * (1 - signalStrengthRelative) / 6;
-
-    return noise;
-  }
+  double get _signalStrengthRelative => pow(signalStrength, 1 / 1.5).toDouble();
 
   double _cutSignal(double signal) {
-    double signalStrengthRelative = pow(signalStrength, 1 / 2.5).toDouble();
-
-    signal = signal + 1;
-    var maxSignalStrength = signalStrengthRelative * 1.4;
-
+    var maxSignalStrength = (_signalStrengthRelative - 0.5) * 2;
     if (signal > maxSignalStrength) signal = maxSignalStrength;
 
-    return signal - 1;
+    var waveShift = (1 - maxSignalStrength) / 2;
+    return signal + waveShift;
   }
 
-  double _addNoise(double signal) {
-    signal = signal + _getNoise();
-    return signal;
+  /// https://www.firstpr.com.au/dsp/pink-noise/
+  double _addPinkNoise(double signal) {
+    var white = _random.nextDouble() * 2 - 1;
+    _b0 = 0.99886 * _b0 + white * 0.0555179;
+    _b1 = 0.99332 * _b1 + white * 0.0750759;
+    _b2 = 0.96900 * _b2 + white * 0.1538520;
+    _b3 = 0.86650 * _b3 + white * 0.3104856;
+    _b4 = 0.55000 * _b4 + white * 0.5329522;
+    _b5 = -0.7616 * _b5 - white * 0.0168980;
+    var pink = _b0 + _b1 + _b2 + _b3 + _b4 + _b5 + _b6 + white * 0.5362;
+    pink *= 0.24;
+    _b6 = white * 0.115926;
+
+    return signal + pink * (1 - _signalStrengthRelative) / 6;
   }
 
   double _addSawWave(double signal) {
     if (signalStrength == 1) return signal;
 
-    if (_waveI > _period) {
-      _freq = 200 + (_random.nextDouble() * 200).toInt();
-      _period = 200000 + (_random.nextDouble() * 900000).toInt();
-      _waveI = 0;
+    _sawVolume1 = _sawVolume1 + (_random.nextDouble() - 0.5) * 0.002;
+
+    if (_sawVolume1 > 1 || _sawVolume1 < -1) {
+      _sawVolume1 = 0;
     }
 
-    if (_waveI > 3000) {
-      _freq = _freq + ((_random.nextDouble() - 0.5) * 10).toInt();
-      if (_freq < 500) _freq = 500;
-      if (_freq > 700) _freq = 700;
-      _waveI = 0;
-    }
-
-    if (_waveI < _period) {
-      _sawVolume1 = _sawVolume1 + (_random.nextDouble() - 0.5) / 1000;
-    } else {
-      _waveI = 0;
-    }
-
-    signal = signal + (_sawWaveI / _freq) * (1 - signalStrength) * _sawVolume1;
+    signal = signal +
+        (_sawWaveI / _freq) * (1 - _signalStrengthRelative) * _sawVolume1;
     if (_sawWaveI > _freq) _sawWaveI = 0;
 
-    signal =
-        signal + (_sawWave2I / _freq2) * (1 - signalStrength) * _sawVolume2;
+    signal = signal +
+        (_sawWave2I / _freq2) * (1 - _signalStrengthRelative) * _sawVolume2;
     if (_sawWave2I > _freq2) _sawWave2I = 0;
 
     _sawWaveI++;
@@ -83,7 +80,7 @@ class RadioNode {
 
   double _changeSignal(double signal) {
     signal = _cutSignal(signal);
-    signal = _addNoise(signal);
+    signal = _addPinkNoise(signal);
     signal = _addSawWave(signal);
 
     if (signal > 1) signal = 1;

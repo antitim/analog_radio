@@ -5,13 +5,15 @@
 
 ## About
 
-This package adds distortion to the online audio stream, so it becomes like a radio receiver.
-
-You can change the signal level so that it can be very weak and there will be a lot of interference.
-
-The AudioContext Api is used. Therefore, it works only in the browser.
+This package distorts the online audio stream so it sounds like a radio broadcast. You can adjust the volume so it's very soft with a lot of noise. The AudioContext API is used, so it only works in your browser.
 
 [Example](https://analog-radio-example.web.app/)
+
+## Portable radio
+
+This web app uses that plugin.
+
+[![](https://portable-radio.tim-v.com/icons/Icon-192.png)](https://portable-radio.tim-v.com)
 
 ## Install
 
