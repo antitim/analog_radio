@@ -1,3 +1,13 @@
+# 2.0.0
+
+- The filter setting has been removed and the filter has also been removed.
+- A noise reset method has been added. It is supposed to be used to create the effect of changing the frequency of the radio receiver.
+- The ability to add your own AudioNode has been added.
+- Added a crackling effect.
+- Added pre-amplification to the input signal.
+- The noise level was corrected.
+- Added sound visualization in the example.
+
 # 1.3.0
 
 - Updated the sound of the noise.

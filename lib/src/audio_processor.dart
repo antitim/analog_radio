@@ -3,7 +3,6 @@ import 'dart:web_audio';
 
 import 'audio_player.dart';
 import 'audio_processor_state.dart';
-import 'filter_type.dart';
 import 'analog_radio.dart';
 import 'radio_node.dart';
 
@@ -12,13 +11,16 @@ class AudioProcessor implements AnalogRadio {
   late AudioContext _audioContext;
   late AudioPlayer _audioPlayer;
   late RadioNode _radioNode;
+  late GainNode _preGainNode;
   late GainNode _gainNode;
-  late BiquadFilterNode _filterNode;
   double _signalStrength = 0;
   Timer? _watchingTimer;
 
   /// Speed of signal level change
   Duration speedLevelChange;
+
+  /// Adding custom audio node
+  AudioNode Function(AudioContext context)? setCustomNode;
 
   StreamController<AudioProcessorState> _stateStreamCtrl =
       StreamController<AudioProcessorState>();
@@ -27,6 +29,7 @@ class AudioProcessor implements AnalogRadio {
 
   AudioProcessor({
     this.speedLevelChange = const Duration(milliseconds: 10),
+    this.setCustomNode,
   }) {
     _audioContext = AudioContext();
     _audioPlayer = AudioPlayer();
@@ -34,17 +37,22 @@ class AudioProcessor implements AnalogRadio {
     var source = _audioContext.createMediaElementSource(_audioPlayer.element);
     _radioNode = RadioNode(_audioContext);
 
-    _filterNode = _audioContext.createBiquadFilter();
-    _filterNode.type = 'allpass';
-    _filterNode.frequency?.value = 3500;
-    _filterNode.Q?.value = 1.7;
-
     _gainNode = _audioContext.createGain();
 
-    source.connectNode(_radioNode.node);
-    _radioNode.node.connectNode(_filterNode);
-    _filterNode.connectNode(_gainNode);
-    _gainNode.connectNode(_audioContext.destination!);
+    _preGainNode = _audioContext.createGain();
+    _preGainNode.gain?.value = 1.8;
+
+    source.connectNode(_preGainNode);
+    _preGainNode.connectNode(_radioNode.node);
+    _radioNode.node.connectNode(_gainNode);
+
+    if (setCustomNode != null) {
+      var customNode = setCustomNode!(_audioContext);
+      _gainNode.connectNode(customNode);
+      customNode.connectNode(_audioContext.destination!);
+    } else {
+      _gainNode.connectNode(_audioContext.destination!);
+    }
 
     // Playback has started
     _audioPlayer.onPlaying.listen((event) => _dispatchCurrentState());
@@ -95,6 +103,11 @@ class AudioProcessor implements AnalogRadio {
     _audioPlayer.play(url);
   }
 
+  @override
+  void tuning() {
+    _radioNode.resetNoise();
+  }
+
   void _startWatching() {
     _watchingTimer = Timer.periodic(speedLevelChange, (_) {
       var diff = (playing ? _signalStrength : 0) - _radioNode.signalStrength;
@@ -133,37 +146,11 @@ class AudioProcessor implements AnalogRadio {
   }
 
   @override
-  set filter(FilterType value) {
-    switch (value) {
-      case FilterType.allpass:
-        _filterNode.type = 'allpass';
-        break;
-      case FilterType.bandpass:
-        _filterNode.type = 'bandpass';
-        break;
-    }
-
-    _dispatchCurrentState();
-  }
-
-  @override
   double get signalStrength => _signalStrength;
   @override
   double get internalSignalStrength => _radioNode.signalStrength;
   @override
   double get volume => _gainNode.gain!.value!.toDouble();
-  @override
-  FilterType get filter {
-    switch (_filterNode.type) {
-      case 'allpass':
-        return FilterType.allpass;
-      case 'bandpass':
-        return FilterType.bandpass;
-      default:
-        return FilterType.allpass;
-    }
-  }
-
   @override
   bool get playing => _audioPlayer.buffered.length > 0;
   @override
