@@ -2,7 +2,12 @@ import 'dart:math';
 import 'dart:web_audio';
 
 class RadioNode {
-  ScriptProcessorNode _node;
+  RadioNode(final AudioContext ctx)
+      : _node = ctx.createScriptProcessor(4096, 2, 2) {
+    _node.onAudioProcess.listen(onAudioProcessHandler);
+  }
+
+  final ScriptProcessorNode _node;
   final Random _random = Random(10);
 
   /// From 0 to 1
@@ -11,8 +16,8 @@ class RadioNode {
   // For saw wave
   int _sawWaveI = 0;
   int _sawWave2I = 0;
-  int _freq = 600;
-  int _freq2 = 62;
+  final int _freq = 600;
+  final int _freq2 = 62;
   double _sawVolume1 = 0.2;
   double _sawVolume2 = 0.4;
 
@@ -25,7 +30,7 @@ class RadioNode {
   double _b5 = 0;
   double _b6 = 0;
 
-  resetNoise() {
+  void resetNoise() {
     _sawWaveI = _random.nextInt(_freq);
     _sawWave2I = _random.nextInt(_freq2);
     _sawVolume1 = _random.nextDouble() / 5;
@@ -40,27 +45,24 @@ class RadioNode {
     _b6 = _random.nextDouble();
   }
 
-  RadioNode(AudioContext ctx) : _node = ctx.createScriptProcessor(4096, 2, 2) {
-    _node.onAudioProcess.listen(onAudioProcessHandler);
-  }
-
   AudioNode get node => _node;
 
-  double _cutSignal(double signal) {
-    var signalStrengthRelative = pow(signalStrength, 0.6);
-    var maxSignalStrength = (signalStrengthRelative - 0.5) * 2;
-    if (signal > maxSignalStrength) signal = maxSignalStrength;
+  double _cutSignal(final double signal) {
+    var changedSignal = signal;
+    final signalStrengthRelative = pow(signalStrength, 0.6);
+    final maxSignalStrength = (signalStrengthRelative - 0.5) * 2;
+    if (changedSignal > maxSignalStrength) changedSignal = maxSignalStrength;
 
-    var waveShift = (1 - maxSignalStrength) / 2;
+    final waveShift = (1 - maxSignalStrength) / 2;
 
-    return signal + waveShift;
+    return changedSignal + waveShift;
   }
 
   /// https://www.firstpr.com.au/dsp/pink-noise/
-  double _addPinkNoise(double signal) {
-    var signalStrengthRelative = pow(signalStrength, 0.4);
+  double _addPinkNoise(final double signal) {
+    final signalStrengthRelative = pow(signalStrength, 0.4);
 
-    var white = _random.nextDouble() * 2 - 1;
+    final white = _random.nextDouble() * 2 - 1;
     _b0 = 0.99886 * _b0 + white * 0.0555179;
     _b1 = 0.99332 * _b1 + white * 0.0750759;
     _b2 = 0.96900 * _b2 + white * 0.1538520;
@@ -72,10 +74,10 @@ class RadioNode {
     _b6 = white * 0.115926;
 
     var crackle = 0.0;
-    var crackleFrom = 0.8; // For 0 signalStrength
-    var crackleTo = 1.4; // For 1 signalStrength
+    final crackleFrom = 0.8; // For 0 signalStrength
+    final crackleTo = 1.4; // For 1 signalStrength
 
-    var pinkNoiseGateLevel =
+    final pinkNoiseGateLevel =
         signalStrength * (crackleTo - crackleFrom) + crackleFrom;
 
     if (pink.abs() > pinkNoiseGateLevel) {
@@ -85,7 +87,9 @@ class RadioNode {
     return signal + pink * (1 - signalStrengthRelative) + crackle;
   }
 
-  double _addSawWave(double signal) {
+  double _addSawWave(final double signal) {
+    var changedSignal = signal;
+
     if (signalStrength == 1) return signal;
 
     _sawVolume1 = _sawVolume1 + (_random.nextDouble() - 0.5) * 0.002;
@@ -94,11 +98,12 @@ class RadioNode {
       _sawVolume1 = 0;
     }
 
-    signal = signal + (_sawWaveI / _freq) * (1 - signalStrength) * _sawVolume1;
+    changedSignal = changedSignal +
+        (_sawWaveI / _freq) * (1 - signalStrength) * _sawVolume1;
     if (_sawWaveI > _freq) _sawWaveI = 0;
 
-    signal =
-        signal + (_sawWave2I / _freq2) * (1 - signalStrength) * _sawVolume2;
+    changedSignal = changedSignal +
+        (_sawWave2I / _freq2) * (1 - signalStrength) * _sawVolume2;
     if (_sawWave2I > _freq2) _sawWave2I = 0;
 
     _sawWaveI++;
@@ -107,25 +112,25 @@ class RadioNode {
     return signal;
   }
 
-  double _changeSignal(double signal) {
-    signal = _cutSignal(signal);
-    signal = _addPinkNoise(signal);
-    signal = _addSawWave(signal);
+  double _changeSignal(final double signal) {
+    var changedSignal = _cutSignal(signal);
+    changedSignal = _addPinkNoise(changedSignal);
+    changedSignal = _addSawWave(changedSignal);
 
-    if (signal > 1) signal = 1;
-    if (signal < -1) signal = -1;
+    if (changedSignal > 1) changedSignal = 1;
+    if (changedSignal < -1) changedSignal = -1;
 
-    return signal;
+    return changedSignal;
   }
 
-  void onAudioProcessHandler(AudioProcessingEvent event) {
-    var inputBuffer = event.inputBuffer;
-    var outputBuffer = event.outputBuffer;
+  void onAudioProcessHandler(final AudioProcessingEvent event) {
+    final inputBuffer = event.inputBuffer;
+    final outputBuffer = event.outputBuffer;
 
     for (var ch = 0; ch < outputBuffer!.numberOfChannels!; ch++) {
-      var inputData =
+      final inputData =
           inputBuffer!.getChannelData(signalStrength < 0.4 ? 0 : ch);
-      var outputData = outputBuffer.getChannelData(ch);
+      final outputData = outputBuffer.getChannelData(ch);
 
       for (var sampleIdx = 0; sampleIdx < inputBuffer.length!; sampleIdx++) {
         outputData[sampleIdx] = _changeSignal(inputData[sampleIdx]);

@@ -6,7 +6,7 @@ import 'audio_processor_state.dart';
 /// Emulates analog radio
 abstract class AnalogRadio {
   factory AnalogRadio({
-    AudioNode Function(AudioContext context)? setCustomNode,
+    final AudioNode Function(AudioContext context)? setCustomNode,
   }) {
     return AudioProcessor(setCustomNode: setCustomNode);
   }
@@ -15,13 +15,15 @@ abstract class AnalogRadio {
   Stream<AudioProcessorState> get state;
 
   /// Turns on the radio
-  void turnOn();
+  Future<void> turnOn();
 
   /// Turns off the radio
-  void turnOff();
+  Future<void> turnOff();
 
-  /// Adjusts the radio to the [url] stream with the signal strength [signalStrength]. [signalStrength] must be from 0 to 1
-  void tune(String url, double signalStrength);
+  /// Adjusts the radio to the [url] stream
+  /// with the signal strength [signalStrength].
+  /// [signalStrength] must be from 0 to 1
+  Future<void> tune(final String url, final double signalStrength);
 
   /// Turns on the frequency change sound
   void tuning();

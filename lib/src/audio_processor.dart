@@ -1,13 +1,47 @@
 import 'dart:async';
 import 'dart:web_audio';
 
+import 'analog_radio.dart';
 import 'audio_player.dart';
 import 'audio_processor_state.dart';
-import 'analog_radio.dart';
 import 'radio_node.dart';
 
-/// Gathers all the audio nodes together and gives an external interface for management
+/// Gathers all the audio nodes together
+/// and gives an external interface for management
 class AudioProcessor implements AnalogRadio {
+  AudioProcessor({
+    this.speedLevelChange = const Duration(milliseconds: 10),
+    this.setCustomNode,
+  }) {
+    _audioContext = AudioContext();
+    _audioPlayer = AudioPlayer();
+
+    final source = _audioContext.createMediaElementSource(_audioPlayer.element);
+    _radioNode = RadioNode(_audioContext);
+
+    _gainNode = _audioContext.createGain();
+
+    _preGainNode = _audioContext.createGain();
+    _preGainNode.gain?.value = 1.8;
+
+    source.connectNode(_preGainNode);
+    _preGainNode.connectNode(_radioNode.node);
+    _radioNode.node.connectNode(_gainNode);
+
+    if (setCustomNode != null) {
+      final customNode = setCustomNode!(_audioContext);
+      _gainNode.connectNode(customNode);
+      customNode.connectNode(_audioContext.destination!);
+    } else {
+      _gainNode.connectNode(_audioContext.destination!);
+    }
+
+    // Playback has started
+    _audioPlayer.onPlaying.listen((final event) => _dispatchCurrentState());
+    // Playback was started
+    _audioPlayer.onPlay.listen((final event) => _dispatchCurrentState());
+  }
+
   late AudioContext _audioContext;
   late AudioPlayer _audioPlayer;
   late RadioNode _radioNode;
@@ -22,43 +56,11 @@ class AudioProcessor implements AnalogRadio {
   /// Adding custom audio node
   AudioNode Function(AudioContext context)? setCustomNode;
 
-  StreamController<AudioProcessorState> _stateStreamCtrl =
+  final StreamController<AudioProcessorState> _stateStreamCtrl =
       StreamController<AudioProcessorState>();
 
+  @override
   Stream<AudioProcessorState> get state => _stateStreamCtrl.stream;
-
-  AudioProcessor({
-    this.speedLevelChange = const Duration(milliseconds: 10),
-    this.setCustomNode,
-  }) {
-    _audioContext = AudioContext();
-    _audioPlayer = AudioPlayer();
-
-    var source = _audioContext.createMediaElementSource(_audioPlayer.element);
-    _radioNode = RadioNode(_audioContext);
-
-    _gainNode = _audioContext.createGain();
-
-    _preGainNode = _audioContext.createGain();
-    _preGainNode.gain?.value = 1.8;
-
-    source.connectNode(_preGainNode);
-    _preGainNode.connectNode(_radioNode.node);
-    _radioNode.node.connectNode(_gainNode);
-
-    if (setCustomNode != null) {
-      var customNode = setCustomNode!(_audioContext);
-      _gainNode.connectNode(customNode);
-      customNode.connectNode(_audioContext.destination!);
-    } else {
-      _gainNode.connectNode(_audioContext.destination!);
-    }
-
-    // Playback has started
-    _audioPlayer.onPlaying.listen((event) => _dispatchCurrentState());
-    // Playback was started
-    _audioPlayer.onPlay.listen((event) => _dispatchCurrentState());
-  }
 
   void _dispatchCurrentState() {
     _stateStreamCtrl.add(AudioProcessorState(
@@ -71,18 +73,18 @@ class AudioProcessor implements AnalogRadio {
   }
 
   @override
-  void turnOn() async {
+  Future<void> turnOn() async {
     if (running) return;
     await _audioContext.resume();
-    if (url != '') {
-      _audioPlayer.play(url);
-    }
     _startWatching();
+    if (url != '') {
+      await _audioPlayer.play(url);
+    }
     _dispatchCurrentState();
   }
 
   @override
-  void turnOff() async {
+  Future<void> turnOff() async {
     if (!running) return;
 
     _audioPlayer.stop();
@@ -93,14 +95,14 @@ class AudioProcessor implements AnalogRadio {
   }
 
   @override
-  void tune(String url, double signalStrength) {
+  Future<void> tune(final String url, final double signalStrength) async {
     this.signalStrength = signalStrength;
 
     if (_audioContext.state == 'suspended') {
       _audioPlayer.src = url;
       return;
     }
-    _audioPlayer.play(url);
+    await _audioPlayer.play(url);
   }
 
   @override
@@ -109,8 +111,8 @@ class AudioProcessor implements AnalogRadio {
   }
 
   void _startWatching() {
-    _watchingTimer = Timer.periodic(speedLevelChange, (_) {
-      var diff = (playing ? _signalStrength : 0) - _radioNode.signalStrength;
+    _watchingTimer = Timer.periodic(speedLevelChange, (final _) {
+      final diff = (playing ? _signalStrength : 0) - _radioNode.signalStrength;
 
       if (diff * diff.sign < 0.01) {
         return;
@@ -127,20 +129,20 @@ class AudioProcessor implements AnalogRadio {
   }
 
   @override
-  set signalStrength(double signalStrength) {
+  set signalStrength(final double signalStrength) {
     _signalStrength = signalStrength;
     _dispatchCurrentState();
   }
 
   @override
-  set internalSignalStrength(double signalStrength) {
+  set internalSignalStrength(final double signalStrength) {
     _signalStrength = signalStrength;
     _radioNode.signalStrength = signalStrength;
     _dispatchCurrentState();
   }
 
   @override
-  set volume(double value) {
+  set volume(final double value) {
     _gainNode.gain!.value = value;
     _dispatchCurrentState();
   }
@@ -159,6 +161,6 @@ class AudioProcessor implements AnalogRadio {
   bool get running => _audioContext.state == 'running';
   @override
   void dispose() {
-    _audioContext.close();
+    unawaited(_audioContext.close());
   }
 }

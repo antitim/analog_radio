@@ -1,3 +1,8 @@
+# 2.1.0
+
+- Added lint
+- Added rethrow DomException: NotSupportedError
+
 # 2.0.0
 
 - The filter setting has been removed and the filter has also been removed.

@@ -9,26 +9,26 @@ import 'ui/station.dart';
 import 'ui/stations.dart';
 
 void main() async {
-  var $volume = document.querySelector('.volume') as RangeInputElement;
-  var $freq = document.querySelector('.freq') as RangeInputElement;
-  var $freqValue = document.querySelector('.frequency-value') as Element;
-  var $stations = document.querySelector('.stations') as TextAreaElement;
-  var $visual = document.getElementById('visual') as CanvasElement;
+  final $volume = document.querySelector('.volume') as RangeInputElement;
+  final $freq = document.querySelector('.freq') as RangeInputElement;
+  final $freqValue = document.querySelector('.frequency-value') as Element;
+  final $stations = document.querySelector('.stations') as TextAreaElement;
+  final $visual = document.getElementById('visual') as CanvasElement;
   late AnalyserNode analyser;
 
-  var radio = AnalogRadio(setCustomNode: (context) {
+  final radio = AnalogRadio(setCustomNode: (final context) {
     analyser = context.createAnalyser();
     return analyser;
   });
-  var stations = Stations();
+  final stations = Stations();
 
   $freq.setAttribute('min', stations.frequencyMin);
   $freq.setAttribute('max', stations.frequencyMax);
 
-  var freqHandler = (Event? event) {
+  void freqHandler(final Event? event) {
     $freqValue.innerText = $freq.value!;
-    var freq = int.tryParse($freq.value!) ?? 0;
-    var station = stations.getStationByFreq(freq);
+    final freq = int.tryParse($freq.value!) ?? 0;
+    final station = stations.getStationByFreq(freq);
 
     radio.tuning();
 
@@ -43,46 +43,46 @@ void main() async {
     } else {
       radio.tune(station.url, station.signalStrength);
     }
-  };
+  }
 
-  var volumeHandler = (Event event) {
-    var val = double.parse((event.target as InputElement).value!);
+  void volumeHandler(final Event event) {
+    final val = double.parse((event.target as InputElement).value!);
     if (val == -30) {
       radio.turnOff();
     } else {
       radio.turnOn();
     }
-    radio.volume = pow(10, (val / 20)).toDouble();
-  };
+    radio.volume = pow(10, val / 20).toDouble();
+  }
 
-  void drawStationsFrequency(List<Station> stations) {
-    var $freq = document.querySelector('.freq') as RangeInputElement;
-    var $stationsFrequency =
+  void drawStationsFrequency(final List<Station> stations) {
+    final $freq = document.querySelector('.freq') as RangeInputElement;
+    final $stationsFrequency =
         document.querySelector('.stations-frequency') as Element;
     $stationsFrequency.innerHtml = '';
 
-    stations.forEach((i) {
-      var $a = document.createElement('a');
+    for (final i in stations) {
+      final $a = document.createElement('a');
       $a.innerText = '${i.freq} kHz';
       $a.setAttribute('href', '#${i.freq}');
-      $a.onClick.listen((event) {
+      $a.onClick.listen((final event) {
         $freq.value = i.freq.toString();
         freqHandler(null);
       });
 
       $stationsFrequency.append($a);
       $stationsFrequency.append(document.createElement('br'));
-    });
+    }
   }
 
-  var stationsChangeHandler = (Event event) {
+  void stationsChangeHandler(final Event event) {
     stations.updateStations($stations.value!.split('\n'));
     drawStationsFrequency(stations.stations);
-  };
+  }
 
   $volume.value = '-30';
 
-  var initialFreq = window.location.hash.replaceAll('#', '');
+  final initialFreq = window.location.hash.replaceAll('#', '');
 
   if (initialFreq != '') {
     $freq.value = initialFreq;
@@ -90,7 +90,7 @@ void main() async {
 
   freqHandler(null);
 
-  $stations.value = stations.stations.map((i) => i.url).join('\n');
+  $stations.value = stations.stations.map((final i) => i.url).join('\n');
   drawStationsFrequency(stations.stations);
 
   $volume.onInput.listen(volumeHandler);
@@ -98,27 +98,27 @@ void main() async {
   $stations.onChange.listen(stationsChangeHandler);
 
   // Draw visualization
-  var WIDTH = 600;
-  var HEIGHT = 200;
+  final width = 600;
+  final height = 200;
   analyser.fftSize = 2048;
-  var ctx = $visual.getContext('2d') as CanvasRenderingContext2D;
-  ctx.clearRect(0, 0, WIDTH, HEIGHT);
-  var bufferLength = analyser.frequencyBinCount;
-  var dataArray = Uint8List(bufferLength!);
+  final ctx = $visual.getContext('2d') as CanvasRenderingContext2D;
+  ctx.clearRect(0, 0, width, height);
+  final bufferLength = analyser.frequencyBinCount;
+  final dataArray = Uint8List(bufferLength!);
 
-  void drawVisual(_) {
+  void drawVisual(final _) {
     analyser.getByteTimeDomainData(dataArray);
-    ctx.fillStyle = "rgb(33, 33, 33)";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = 'rgb(33, 33, 33)';
+    ctx.fillRect(0, 0, width, height);
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgb(220, 220, 220)";
+    ctx.strokeStyle = 'rgb(220, 220, 220)';
     ctx.beginPath();
-    var sliceWidth = WIDTH / bufferLength;
-    double x = 0;
+    final sliceWidth = width / bufferLength;
+    var x = 0.0;
 
     for (var i = 0; i < bufferLength; i++) {
-      var v = dataArray[i] / 128.0;
-      var y = HEIGHT - v * (HEIGHT / 2);
+      final v = dataArray[i] / 128.0;
+      final y = height - v * (height / 2);
 
       if (i == 0) {
         ctx.moveTo(x, y);
@@ -129,7 +129,7 @@ void main() async {
       x += sliceWidth;
     }
 
-    ctx.lineTo(WIDTH, HEIGHT / 2);
+    ctx.lineTo(width, height / 2);
     ctx.stroke();
 
     window.requestAnimationFrame(drawVisual);
